@@ -1,0 +1,3 @@
+[functions.fresh-questions]
+# The function verifies the user with Supabase Auth, including projects using signing keys.
+verify_jwt = false

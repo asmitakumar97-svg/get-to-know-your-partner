@@ -1,0 +1,254 @@
+.playground-hero { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(220px, 1fr); gap: 44px; align-items: center; padding: 52px 0 24px; }
+.playground-hero h1 { font-family: var(--serif); font-size: clamp(42px, 4.5vw, 65px); font-weight: 400; line-height: 1.17; letter-spacing: -1.8px; margin: 17px 0 20px; }
+.playground-hero h1 em { color: #a13966; }
+.playground-hero p { font-size: 15px; line-height: 1.9; color: #665875; max-width: 440px; }
+.playground-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 25px 0 18px; }
+.playground-hero .playground-report-note { font-size: 13px; }
+.playground-guide { background: #f2e8ef; border: 1px solid #d5b9cb; border-radius: 20px; padding: 26px; min-width: 0; }
+.playground-guide h2 { font-family: var(--serif); font-size: 29px; font-weight: 400; color: #574267; margin: 0 0 22px; }
+.playground-guide ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 20px; }
+.playground-guide li { display: grid; grid-template-columns: 21px minmax(0, 1fr); gap: 12px; }
+.playground-guide li > svg { color: #8b4165; margin-top: 2px; }
+.playground-guide h3 { font-size: 15px; line-height: 1.5; color: #574267; margin: 0; }
+.playground-hero .playground-guide p { font-size: 15px; line-height: 1.75; margin: 6px 0 0; max-width: none; }
+.phone-navigation, .phone-about-link, .phone-about-description, .phone-mode-label, .phone-review-back, .phone-playlist-review, .phone-game-switcher { display: none; }
+.setup-modal .question-source-note { font-size: 14px; line-height: 1.75; color: #665875; margin: 20px 0; }
+.hub-heading-flower { color: #ae597d; }
+.hub-card > .hub-report-note { font-size: 11px; margin-top: 13px; color: #594760; font-weight: 500; }
+.playlist-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #aa8b9e; border-radius: 8px; padding: 12px; margin-top: 18px; font-size: 12px; min-height: 44px; color: #59415c; background: #fffaf280; }
+.playlist-toggle[aria-pressed=true] { background: #fffaf0; border-color: #496537; color: #354d2c; }
+.playlist-builder { border: 1px solid #bdc4a8; border-radius: 16px; background: #eef0df; padding: 30px; margin-top: 32px; }
+.playlist-builder h3 { font-family: var(--serif); font-size: 30px; font-weight: 400; margin: 12px 0; }
+.playlist-builder p { color: #586445; line-height: 1.9; font-size: 13px; }
+.playlist-empty { padding: 25px 0; color: #64704e; font-size: 14px; line-height: 1.8; }
+.playlist-order { list-style: none; padding: 0; display: grid; gap: 10px; margin: 23px 0; }
+.playlist-order li { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid #cbd1b9; border-radius: 10px; background: #fffdf3; min-width: 0; }
+.playlist-order strong { flex: 1; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+.playlist-number { display: grid; place-items: center; flex-shrink: 0; width: 25px; height: 25px; border-radius: 50%; background: #e7dfef; font-size: 11px; color: #67517d; }
+.playlist-order button { min-width: 44px; min-height: 44px; display: grid; place-items: center; font-size: 11px; padding: 5px; color: #5a4c6a; }
+.playlist-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.setup-playlist { padding-left: 20px; font-size: 12px; line-height: 2; margin: 10px 0; }
+.night-progress { border: 1px solid #d8c6db; background: #faf5fb; border-radius: 12px; padding: 18px; margin: 20px 0; }
+.night-progress > span { font-size: 9px; letter-spacing: 1.4px; color: #755c80; }
+.night-progress ol { display: flex; flex-wrap: wrap; gap: 10px 18px; list-style: none; padding: 0; margin: 14px 0 0; }
+.night-progress li { display: flex; align-items: center; gap: 7px; font-size: 11px; line-height: 1.7; color: #70617b; }
+.night-progress li > span { width: 23px; height: 23px; border-radius: 50%; background: #e9e1ee; display: grid; place-items: center; flex-shrink: 0; }
+.night-progress li[aria-current=step] { color: #3f5d32; font-weight: 600; }
+.night-progress li[aria-current=step] > span { background: #dce7cc; }
+.night-intermission { margin: 32px 0; text-align: center; }
+.night-intermission .round-icon { margin: 0 auto 20px; }
+.night-intermission > .eyebrow { justify-content: center; }
+.night-intermission h2 { font-family: var(--serif); font-weight: 400; font-size: 35px; line-height: 1.4; margin: 17px 0; }
+.night-intermission > p { color: #6f5b79; line-height: 1.9; font-size: 13px; max-width: 520px; margin: 0 auto 17px; }
+.night-intermission > small { display: block; line-height: 1.8; color: #725b7a; margin-top: 15px; }
+.night-game-report { text-align: left; border: 1px solid #cdbbd4; border-radius: 12px; background: #fffdf7; padding: 0 20px 15px; margin-top: 25px; min-width: 0; }
+.night-game-report > summary { cursor: pointer; padding: 20px 0 5px; color: #644f76; font-size: 13px; line-height: 1.8; min-height: 54px; overflow-wrap: anywhere; }
+.night-game-report > .compatibility-report { margin-top: 20px; }
+.night-report { margin: 30px 0; }
+.night-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.night-summary-card { border: 1px solid #cbb9d2; border-radius: 14px; padding: 24px; background: #fbf6fd; }
+.night-summary-card:nth-child(2n) { background: #f5f6e7; border-color: #bdc5a1; }
+.night-summary-card h4 { font-family: var(--serif); font-size: 25px; font-weight: 400; line-height: 1.5; color: #51435e; }
+.night-summary-card h5 { font-size: 12px; color: #594665; margin: 22px 0 8px; }
+.night-summary-card p, .night-summary-card li { color: #6b5a75; font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.night-summary-card > p:first-of-type { margin: 10px 0; }
+.night-summary-card ul { padding-left: 18px; }
+.report-cover > .report-bouquet { position: static; }
+.report-cover .report-names { max-width: 100%; }
+.report-cover > p { margin-left: auto; margin-right: auto; }
+.report-threads .thread-decoration { position: static; }
+.brand-mark { background: #fff7e8; border-color: #c2c9a3; }
+.card-floral-border { display: block; width: 100%; height: 24px; flex-shrink: 0; pointer-events: none; }
+.hub-card > .card-floral-border:first-child { margin-bottom: 17px; }
+.hub-card > .card-floral-border:last-child { margin-top: 20px; }
+.hub-sticker { display: block; width: 46px; height: 51px; flex-shrink: 0; margin-left: auto; }
+.hub-quick-play { padding: 16px; border: 1px solid #b998b355; border-radius: 10px; background: #fffbf070; margin-top: 20px; }
+.hub-quick-play h4 { font-size: 14px; font-weight: 600; color: #5c4665; margin-bottom: 8px; }
+.hub-quick-play p { font-size: 15px; line-height: 1.8; color: #604f68; }
+.promise-sticker { display: block; width: 58px; height: 64px; flex-shrink: 0; }
+.section-picker { border: 0; padding: 0; margin: 26px 0; min-width: 0; }
+.section-picker legend { color: #544065; font-size: 17px; font-weight: 600; }
+.section-picker > p { color: #6e5c79; font-size: 15px; line-height: 1.8; margin: 10px 0 16px; }
+.section-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.setup-modal .section-option { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 8px 10px; border: 1px solid #c9b6d6; border-radius: 12px; padding: 15px; background: #fffcf5; margin: 0; cursor: pointer; }
+.setup-modal .section-option.selected { background: #edf0dc; border-color: #849864; }
+.setup-modal .section-option > input { width: 20px; height: 20px; padding: 0; margin: 2px 0 0; accent-color: #4e6b35; }
+.section-option-title { display: flex; gap: 5px 12px; flex-wrap: wrap; font-weight: 600; color: #564466; font-size: 15px; line-height: 1.7; }
+.section-option-title > span { font-weight: 400; color: #725a7d; font-size: 13px; }
+.section-option > span:last-child { grid-column: 2; color: #6e5e74; font-size: 14px; line-height: 1.75; }
+.section-picker-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.section-picker-foot > span { color: #655372; font-size: 14px; line-height: 1.7; }
+.section-progress { padding: 20px; border: 1px solid #cfbfda; border-radius: 14px; background: #fcf8fe; margin: 23px 0; }
+.section-progress ol { padding: 0; margin: 15px 0 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.section-progress li { padding: 12px; border: 1px solid #d7ccdf; border-radius: 9px; background: #f7f2fa; min-width: 0; }
+.section-progress li[aria-current=step] { background: #edf1da; border-color: #92a369; }
+.section-progress li > span { display: flex; gap: 5px; align-items: center; font-size: 14px; line-height: 1.6; color: #5d4b6c; overflow-wrap: anywhere; }
+.section-progress small { display: block; font-size: 13px; color: #75647f; margin-top: 5px; line-height: 1.7; }
+.section-progress .section-not-selected { background: #fffdf8; border-style: dashed; }
+.button { min-height: 48px; padding: 13px 18px; font-size: 15px; }
+.text-button { min-height: 44px; font-size: 14px; line-height: 1.7; }
+.nav-item { min-height: 48px; font-size: 15px; }
+.sidebar-label { font-size: 11px; line-height: 1.8; letter-spacing: 1px; }
+.sidebar-footer, .sidebar-note > span { font-size: 13px; line-height: 1.8; }
+.breadcrumb { font-size: 14px; }
+.top-note { font-size: 13px; }
+.eyebrow { font-size: 12px; line-height: 1.8; letter-spacing: 1.2px; }
+.hub-heading .eyebrow { font-size: 12px; }
+.hub-heading p, .hub-card > p { font-size: 15px; line-height: 1.85; }
+.hub-card-top > span:nth-child(2) { font-size: 12px; line-height: 1.7; letter-spacing: .6px; }
+.hub-card > .hub-report-note { font-size: 14px; }
+.hub-card details { font-size: 15px; line-height: 1.8; }
+.hub-card summary { min-height: 44px; padding: 8px 0; }
+.hub-card-actions > .button { font-size: 15px; }
+.hub-card-actions > .text-button { font-size: 14px; }
+.hub-footnote { font-size: 14px; }
+.playlist-toggle { font-size: 15px; min-height: 48px; }
+.playlist-builder p, .playlist-order strong { font-size: 15px; }
+.playlist-order button { font-size: 14px; }
+.setup-modal > p, .setup-game-banner p, .setup-playlist { font-size: 15px; line-height: 1.85; }
+.setup-modal form > label, .setup-selects label { font-size: 15px; line-height: 1.7; }
+.setup-selects > label:only-child { grid-column: 1 / -1; }
+.setup-modal input, .setup-modal select, textarea { font-size: 16px; }
+.setup-mode-switch button { font-size: 15px; min-height: 48px; }
+.modal-foot, .setup-warning p { font-size: 14px; line-height: 1.8; }
+.modal-close, .icon-button { min-width: 44px; min-height: 44px; }
+.session-bar, .round-progress, .round-progress .muted { font-size: 14px; line-height: 1.8; }
+.scenario-card .muted, .party-rules { font-size: 15px; line-height: 1.8; }
+.handoff-card p, .center-card p { font-size: 16px; line-height: 1.9; }
+.handoff-card small { font-size: 14px; line-height: 1.8; }
+.answer-heading { font-size: 14px; gap: 12px; flex-wrap: wrap; }
+.choices legend { font-size: 17px; line-height: 1.7; }
+.choices > p { font-size: 15px; }
+.choice, .party-options .choice { font-size: 16px; min-height: 56px; }
+.explanation-label { font-size: 16px; }
+.explanation-label > span, .answer-submit > span { font-size: 14px; line-height: 1.8; }
+.reveal-heading p, .reveal-card dd, .reveal-card blockquote { font-size: 16px; line-height: 1.85; }
+.reveal-card dt { font-size: 13px; }
+.alignment-row span, .alignment-row strong { font-size: 14px; }
+.discussion-prompt p, .discussion-bottom > span { font-size: 15px; line-height: 1.8; }
+.discussion-prompt > small, .discussion-prompt small { font-size: 14px; line-height: 1.8; }
+.party-round-result p, .soft-note, .alert { font-size: 15px; line-height: 1.85; }
+.report-cover .eyebrow { font-size: 12px; }
+.report-cover-tag { font-size: 14px; line-height: 1.8; }
+.report-cover > p:last-child { font-size: 15px; line-height: 1.9; }
+.report-intro p, .report-heading p, .report-next p, .report-next li { font-size: 15px; line-height: 1.85; }
+.report-threads > div > span:not(.thread-decoration), .report-threads small { font-size: 14px; line-height: 1.8; }
+.report-threads p { font-size: 15px; line-height: 1.9; }
+.insight-card p, .insight-card li, .report-empty, .report-spotlight p { font-size: 15px; line-height: 1.85; }
+.insight-card summary small, .theme-card dl dt, .theme-card dl dd { font-size: 14px; line-height: 1.8; }
+.theme-card > p, .theme-card details, .care-body h5, .frequency-list li, .care-prompts { font-size: 15px; line-height: 1.85; }
+.frequency-list strong { font-size: 14px; }
+.report-evidence dt { font-size: 13px; }
+.report-evidence dd, .report-journal > details > p, .journal-prompt { font-size: 15px; line-height: 1.9; }
+.party-report .reveal-card h3, .party-report .reveal-card dd { font-size: 15px; }
+.party-report .reveal-card dt { font-size: 13px; }
+.party-score-grid p, .party-surprises a, .party-scope-note { font-size: 15px; line-height: 1.85; }
+.report-save p, .report-save .button { font-size: 15px; line-height: 1.8; }
+.night-progress li, .night-intermission > p, .night-summary-card p, .night-summary-card li, .night-game-report > summary { font-size: 15px; line-height: 1.85; }
+.night-intermission > small, .page-footer { font-size: 14px; line-height: 1.8; }
+.promise h3 { font-size: 22px; }
+.promise p { font-size: 15px; line-height: 1.8; }
+.night-progress > span { font-size: 12px; }
+.night-summary-card h5 { font-size: 15px; line-height: 1.8; }
+.play-mode-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+.play-mode-picker button { border: 1px solid #bfa9cc; border-radius: 14px; padding: 22px; text-align: left; background: #fffdf6; min-width: 0; }
+.play-mode-picker button[aria-pressed=true] { background: #e8eed9; border-color: #79915d; box-shadow: inset 0 0 0 1px #79915d; }
+.play-mode-picker strong { display: block; font-family: var(--serif); font-size: 24px; font-weight: 400; line-height: 1.5; color: #51425f; }
+.play-mode-picker button > span { display: block; font-size: 15px; line-height: 1.8; color: #6b5977; margin-top: 10px; }
+.saved-session-hint { font-size: 15px; line-height: 1.8; color: #6d5775; margin-bottom: 24px; }
+.home-session { background: #edf1de; border: 1px solid #afbe91; border-radius: 14px; padding: 24px; margin-top: 26px; }
+.home-session h2 { font-family: var(--serif); font-size: 27px; font-weight: 400; line-height: 1.5; }
+.home-session p { font-size: 15px; line-height: 1.85; color: #58664a; margin-top: 12px; }
+.home-session-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.play-top { flex-wrap: wrap; }
+.play-top > div:first-child { flex: 1 1 220px; }
+.play-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.play-area { --game-paper: #fce5ee; --game-edge: #c291aa; }
+.play-same-brain { --game-paper: #ecebfc; --game-edge: #a59bc9; }
+.play-pick-my-poison { --game-paper: #fce9cd; --game-edge: #c7a16f; }
+.play-read-the-room { --game-paper: #e7efda; --game-edge: #a1b587; }
+.play-more-likely { --game-paper: #f8e2ed; --game-edge: #c28ca9; }
+.play-area .scenario-card { background-color: var(--game-paper); border-color: var(--game-edge); }
+.play-area .answer-form, .play-area .handoff-card { border-color: var(--game-edge); }
+.play-area .scenario-card, .play-area .answer-form, .play-area .reveal-card, .play-area .discussion-prompt, .play-area .handoff-card, .play-area .center-card {
+  background-image: url('./floral-border.svg'), url('./floral-border.svg');
+  background-size: 90px 24px;
+  background-repeat: repeat-x;
+  background-position: left 10px top 10px, left 10px bottom 10px;
+  padding-top: 46px;
+  padding-bottom: 46px;
+}
+.play-area .scenario-card > .scenario-sticker { display: block; width: 58px; height: 64px; margin: 0 auto 18px; flex-shrink: 0; }
+@media (max-width: 1000px) {
+  .playground-hero { gap: 22px; grid-template-columns: minmax(0, 1.3fr) minmax(190px, 1fr); }
+  .playground-guide { padding: 22px 18px; }
+}
+@media (max-width: 700px) {
+  .app-shell { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .sidebar .desktop-navigation { display: none; }
+  .topbar { display: none; }
+  .sidebar { padding-top: 15px; padding-bottom: 15px; }
+  .sidebar .brand-mark { width: 43px; height: 43px; }
+  .phone-navigation { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #fffaf0; border-top: 1px solid #cbbbd2; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); gap: 8px; }
+  .phone-navigation button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 52px; border-radius: 12px; font-size: 13px; color: #665175; }
+  .phone-navigation button[aria-current=page] { background: #e8edd9; color: #3c542e; font-weight: 600; }
+  .phone-screen-home .game-hub, .phone-screen-home .playground-guide, .phone-screen-home .promise,
+  .phone-screen-about .game-hub, .phone-screen-about .playground-intro,
+  .phone-screen-games .playground-hero, .phone-screen-games .promise,
+  .phone-screen-about .home-session, .phone-screen-games .home-session,
+  .phone-screen-about .page-footer, .phone-screen-games .page-footer { display: none; }
+  .phone-about-link { display: inline-flex; margin-top: 14px; }
+  .playground-hero .phone-about-description { display: block; margin: 0 0 24px; }
+  .play-mode-picker { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .play-mode-picker button { padding: 13px 8px; text-align: center; }
+  .play-mode-picker button strong { font-size: 16px; }
+  .play-mode-picker button > span { font-size: 13px; line-height: 1.5; }
+  .desktop-mode-label { display: none; }
+  .phone-mode-label { display: inline; }
+  .phone-game-switcher { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 12px; }
+  .phone-game-switcher button { min-height: 44px; padding: 8px 12px; background: #f0e7f4; border: 1px solid #cbbbd2; border-radius: 10px; font-size: 14px; color: #574267; }
+  .phone-game-switcher span { color: #665175; font-size: 14px; }
+  .hub-grid .hub-card:not(.phone-current-game) { display: none; }
+  .game-hub .hub-grid { grid-template-columns: minmax(0, 1fr); }
+  .phone-browsing .playlist-builder { display: none; }
+  .phone-reviewing .hub-grid, .phone-reviewing .phone-game-switcher, .phone-reviewing .play-mode-picker { display: none; }
+  .phone-review-back { display: inline-flex; margin-bottom: 18px; }
+  .phone-playlist-review { display: block; padding: 12px; background: #fffaf0; border: 1px solid #cbbbd2; border-radius: 12px; margin-top: 18px; }
+  .phone-playlist-review p { font-size: 13px; line-height: 1.5; color: #665175; margin: 8px 0 0; text-align: center; }
+  .game-hub { margin-top: 20px; }
+  .hub-heading { margin-top: 0; margin-bottom: 12px; }
+  .hub-heading h2 { font-size: 28px; }
+  .hub-heading .eyebrow { display: none; }
+  .hub-card > .hub-report-note { display: none; }
+  .hub-card > .card-floral-border:first-child { height: 18px; margin-bottom: 8px; }
+  .hub-card > .card-floral-border:last-child { height: 18px; margin-top: 12px; }
+  .hub-card h3 { margin-top: 12px; }
+  .hub-card details { margin: 10px 0; }
+  .hub-card .hub-quick-play { padding: 12px; margin-top: 12px; }
+  .setup-modal { max-height: 100dvh; border-radius: 0; min-height: 100dvh; width: 100%; }
+  .modal-backdrop { padding: 0; }
+  .sidebar { flex-wrap: wrap; gap: 12px; }
+  .sidebar .brand { flex-shrink: 0; }
+  .sidebar nav { flex-wrap: wrap; }
+  .playground-hero { grid-template-columns: 1fr; gap: 24px; padding-top: 34px; }
+  .playground-hero h1 { font-size: 44px; }
+  .playground-guide { padding: 22px; }
+  .hub-heading-flower { display: none; }
+  .section-picker-grid { grid-template-columns: 1fr; }
+  .section-progress { padding: 16px; }
+  .section-progress ol { grid-template-columns: 1fr 1fr; }
+  .hub-sticker { width: 40px; height: 45px; }
+  .hub-card-top { flex-wrap: wrap; }
+  .playlist-builder { padding: 22px 17px; }
+  .playlist-builder h3 { font-size: 27px; }
+  .playlist-order li { flex-wrap: wrap; gap: 5px; padding: 10px; }
+  .playlist-order strong { flex-basis: calc(100% - 36px); }
+  .playlist-order button:first-of-type { margin-left: 29px; }
+  .night-summary-grid { grid-template-columns: 1fr; }
+  .night-summary-card { padding: 22px; }
+  .night-summary-card p, .night-summary-card li { font-size: 15px; }
+  .night-game-report { padding-left: 12px; padding-right: 12px; }
+  .night-intermission h2 { font-size: 30px; }
+  .report-cover { padding-left: 18px; padding-right: 18px; }
+  .report-cover .eyebrow { overflow-wrap: anywhere; }
+}
