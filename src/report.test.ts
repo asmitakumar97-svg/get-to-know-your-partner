@@ -47,7 +47,7 @@ describe('evidence-based compatibility reflection', () => {
     expect(boundaries?.verdict).toBe(1);
     expect(report.themes).toHaveLength(6);
     expect(report.themes.filter(t => t.rounds.length === 0)).toHaveLength(5);
-    expect(reflectionText(report)).toContain('Communication: not explored; no conclusion.');
+    expect(reflectionText(report, 'archive')).toContain('Communication: not explored; no conclusion.');
   });
   it('counts every selected feeling and priority, including tied frequencies', () => {
     const report = buildReflection(completed([
@@ -92,7 +92,7 @@ describe('evidence-based compatibility reflection', () => {
     const state = completed([[first, { ...first, explanation: '<script>This stays plain text</script>' }]]);
     state.mode = 'demo';
     const report = buildReflection(state);
-    const text = reflectionText(report);
+    const text = reflectionText(report, 'archive');
     expect(report.isDemo).toBe(true);
     expect(text).toContain('DEMO: one partner is simulated');
     expect(text).toContain('<script>This stays plain text</script>');

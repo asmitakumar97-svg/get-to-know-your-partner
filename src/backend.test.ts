@@ -2,16 +2,20 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildSectionDeck, scenarios, sections } from './scenarios';
-import { partyDecks, partyGameIds } from './catalog';
+import { partyDecks as currentPartyDecks, partyGameIds, buildDeck } from './catalog';
 import { partyRecap } from './party';
 import type { ChoiceGameState, SessionState } from './game';
-import { buildPlaylist, nightReflection, nightReportText } from './night';
+import { buildPlaylist as currentBuildPlaylist, nightReflection, nightReportText } from './night';
 import { chooseOfflineQuestions } from './freshQuestions';
 
 const db = new PGlite();
 const alice = '11111111-1111-4111-8111-111111111111';
 const bob = '22222222-2222-4222-8222-222222222222';
 const stranger = '33333333-3333-4333-8333-333333333333';
+// Keep pre-006 upgrade fixtures in their original two-choice format.
+const partyDecks = { ...currentPartyDecks, 'more-likely': currentPartyDecks['more-likely'].map(question => ({ ...question, options: question.options.slice(0, 2) })) };
+const buildPlaylist = (...args: Parameters<typeof currentBuildPlaylist>) => currentBuildPlaylist(...args).map(entry => entry.gameType === 'more-likely'
+  ? { ...entry, deck: entry.deck.map(question => ({ ...question, options: question.options.slice(0, 2) })) } : entry);
 let roomId: string;
 let code: string;
 async function asUser(id: string) {
@@ -200,8 +204,8 @@ describe('PostgreSQL multi-game upgrade', () => {
       const done = await nightState();
       expect(done.night?.finished).toBe(true);
       expect(nightReflection(done).total).toBe(15);
-      expect(nightReportText(done)).toContain('Our private boundary.');
-      expect(nightReportText(done)).toContain('Our private game-night answer.');
+      expect(nightReportText(done, 'archive')).toContain('Our private boundary.');
+      expect(nightReportText(done, 'archive')).toContain('Our private game-night answer.');
       await db.query('select public.advance_game_night($1,4)', [nightId]);
       expect((await nightState()).night?.completed).toHaveLength(5);
     });
@@ -240,7 +244,7 @@ describe('PostgreSQL multi-game upgrade', () => {
     await expect(db.query('select public.create_game_mode($1,$2::jsonb,30,$3)', ['Alice', JSON.stringify(partyDecks['pick-my-poison'].slice(0, 3)), 'same-brain'])).rejects.toThrow('number of answer');
   });
   for (const kind of partyGameIds) {
-    it(`persists and completes ${kind} with private answers, exact scores, and enforced breaks`, async () => {
+    it(`persists and completes ${kind} with private answers, score-free comparisons, and enforced breaks`, async () => {
       await asUser(alice);
       const created = await db.query<{ game: ChoiceGameState }>('select public.create_game_mode($1,$2::jsonb,30,$3) as game', ['Alice', JSON.stringify(partyDecks[kind].slice(0, 3)), kind]);
       const game = created.rows[0].game;
@@ -272,10 +276,11 @@ describe('PostgreSQL multi-game upgrade', () => {
       expect(restored.rows[0].game.phase).toBe('recap');
       const result = partyRecap(restored.rows[0].game);
       expect(result.total).toBe(3);
-      if (kind === 'pick-my-poison') expect(result.players.map(p => p.points)).toEqual([3, 3]);
-      if (kind === 'same-brain') { expect(result.sharedPoints).toBe(3); expect(result.players.map(p => p.points)).toEqual([1, 1]); }
-      if (kind === 'more-likely') expect(result.sharedPoints).toBe(3);
-      if (kind === 'read-the-room') expect(result.players.map(p => p.attempts)).toEqual([1, 2]);
+      expect(result).not.toHaveProperty('sharedPoints');
+      expect(result.rounds.every(round => !('playerPoints' in round))).toBe(true);
+      if (kind === 'pick-my-poison') expect(result.players.map(p => p.matchingPredictions)).toEqual([3, 3]);
+      if (kind === 'same-brain' || kind === 'more-likely') expect(result.rounds.filter(round => round.matched)).toHaveLength(3);
+      if (kind === 'read-the-room') expect(result.players.map(p => p.predictionCount)).toEqual([1, 2]);
       await asUser(stranger);
       await expect(db.query('select public.game_state($1)', [game.id])).rejects.toThrow('not a member');
     });
@@ -283,6 +288,9 @@ describe('PostgreSQL multi-game upgrade', () => {
 });
 
 describe('Fresh question room snapshots', () => {
+  beforeAll(async () => {
+    await db.exec(readFileSync(new URL('../supabase/migrations/006_both_players_choice.sql', import.meta.url), 'utf8'));
+  });
   it('accepts newly prepared decks and stores the exact same questions for both online players', async () => {
     const host = crypto.randomUUID();
     await db.query('insert into auth.users values ($1)', [host]);
@@ -376,5 +384,121 @@ describe('Optional online discussion upgrade', () => {
     await db.query('select public.leave_game($1)', [id]);
     await asUser(host);
     await expect(db.query('select public.ready_night_game($1,0,1)', [id])).rejects.toThrow('left');
+  });
+});
+
+describe('Long games and Both of us upgrade', () => {
+  beforeAll(async () => {
+    await db.exec(readFileSync(new URL('../supabase/migrations/006_both_players_choice.sql', import.meta.url), 'utf8'));
+  });
+  it('creates complete 30/50-round games, validates Both, and preserves stored answers on reapply', async () => {
+    const host = crypto.randomUUID();
+    await db.query('insert into auth.users values ($1)', [host]);
+    for (const kind of partyGameIds) for (const count of [30, 50]) {
+      await asUser(host);
+      const deck = buildDeck(kind, count);
+      const result = await db.query<{ game: SessionState }>('select public.create_game_mode($1,$2::jsonb,30,$3) as game', ['A', JSON.stringify(deck), kind]);
+      const game = result.rows[0].game;
+      expect(game.deck).toHaveLength(count);
+      if (kind !== 'more-likely') continue;
+      await asUser(bob);
+      await db.query('select public.join_game($1,$2)', [game.code, 'B']);
+      await asUser(host);
+      await db.query('select public.start_game($1)', [game.id]);
+      await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ choice: 3, explanation: '' })])).rejects.toThrow('not in');
+      await db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ choice: 2, explanation: '' })]);
+      await asUser(bob);
+      const hidden = (await db.query<{ game: SessionState }>('select public.game_state($1) as game', [game.id])).rows[0].game;
+      expect(hidden.answers[0]).toBeUndefined();
+      const paired = (await db.query<{ game: SessionState }>('select public.answer_game($1,0,$2::jsonb) as game', [game.id, JSON.stringify({ choice: 2, explanation: '' })])).rows[0].game;
+      expect(paired.answers[0][host]).toEqual({ choice: 2, explanation: '' });
+      expect(partyRecap(paired as ChoiceGameState).rounds[0].matched).toBe(true);
+      await db.exec(readFileSync(new URL('../supabase/migrations/006_both_players_choice.sql', import.meta.url), 'utf8'));
+      expect((await db.query<{ game: SessionState }>('select public.game_state($1) as game', [game.id])).rows[0].game).toEqual(paired);
+    }
+  });
+  it('accepts mixed 50-question Same Page games while preserving legacy section lengths', async () => {
+    const host = crypto.randomUUID();
+    await db.query('insert into auth.users values ($1)', [host]);
+    await asUser(host);
+    const plan = currentBuildPlaylist(['same-brain', 'more-likely', 'same-page'], 50, ['Trust']);
+    const result = await db.query<{ game: SessionState }>('select public.create_game_night($1,$2::jsonb,30) as game', ['A', JSON.stringify(plan)]);
+    expect(result.rows[0].game.night?.playlist.map(entry => entry.deck.length)).toEqual([50, 50, 5]);
+    const mixed = currentBuildPlaylist(['same-brain', 'same-page'], 50);
+    const longNight = await db.query<{ game: SessionState }>('select public.create_game_night($1,$2::jsonb,30) as game', ['A', JSON.stringify(mixed)]);
+    expect(longNight.rows[0].game.night?.playlist.map(entry => entry.deck.length)).toEqual([50, 50]);
+    const single = await db.query<{ game: SessionState }>('select public.create_game($1,$2::jsonb,30) as game', ['A', JSON.stringify(mixed[1].deck)]);
+    expect(single.rows[0].game.deck).toEqual(mixed[1].deck);
+    const invalid = [...plan];
+    invalid[2] = { gameType: 'same-page', deck: Array.from({ length: 51 }, (_, i) => ({ ...scenarios[0], id: `invalid-${i}` })) };
+    await expect(db.query('select public.create_game_night($1,$2::jsonb,30)', ['A', JSON.stringify(invalid)])).rejects.toThrow('size');
+    await expect(db.query('select public.create_game($1,$2::jsonb,30)', ['A', JSON.stringify(invalid[2].deck)])).rejects.toThrow('size');
+  });
+  it('accepts six verdict and reasoning choices privately while retaining legacy limits', async () => {
+    const host = crypto.randomUUID();
+    await db.query('insert into auth.users values ($1)', [host]);
+    await asUser(host);
+    const deck = buildDeck('same-page', 3);
+    const created = await db.query<{ game: SessionState }>('select public.create_game($1,$2::jsonb,30) as game', ['A', JSON.stringify(deck)]);
+    const game = created.rows[0].game;
+    await asUser(bob);
+    await db.query('select public.join_game($1,$2)', [game.code, 'B']);
+    await asUser(host);
+    await db.query('select public.start_game($1)', [game.id]);
+    const answer = { verdict: 5, emotion: 2, factor: 5, explanation: 'Trust and safety matter to me.' };
+    await db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify(answer)]);
+    await db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ ...answer, factor: 4 })]);
+    await asUser(bob);
+    const hidden = await db.query<{ game: SessionState }>('select public.game_state($1) as game', [game.id]);
+    expect(hidden.rows[0].game.answers[0]).toBeUndefined();
+    await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ ...answer, verdict: 6 })])).rejects.toThrow('choices');
+    await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ ...answer, factor: 6 })])).rejects.toThrow('choices');
+    const paired = await db.query<{ game: SessionState }>('select public.answer_game($1,0,$2::jsonb) as game', [game.id, JSON.stringify({ ...answer, factor: 4 })]);
+    expect(paired.rows[0].game.answers[0][host]).toEqual(answer);
+    expect(paired.rows[0].game.answers[0][bob]).toEqual({ ...answer, factor: 4 });
+    expect(paired.rows[0].game.deck).toEqual(deck);
+    await asUser(host);
+    const legacy = (await db.query<{ game: SessionState }>('select public.create_game($1,$2::jsonb,30) as game', ['A', JSON.stringify(scenarios.slice(0, 3))])).rows[0].game;
+    await asUser(bob);
+    await db.query('select public.join_game($1,$2)', [legacy.code, 'B']);
+    await asUser(host);
+    await db.query('select public.start_game($1)', [legacy.id]);
+    await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [legacy.id, JSON.stringify({ ...answer, factor: 1 })])).rejects.toThrow('verdict is not in');
+    await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [legacy.id, JSON.stringify({ ...answer, verdict: 1, factor: 4 })])).rejects.toThrow('reasoning choice is not in');
+    await expect(db.query('select public.create_game($1,$2::jsonb,30)', ['A', JSON.stringify(deck.map(question => ({ ...question, reasonOptions: ['One'] })))])).rejects.toThrow('six');
+    const invalidNight = currentBuildPlaylist(['same-brain', 'same-page'], 3);
+    invalidNight[1].deck[0] = { ...invalidNight[1].deck[0], reasonOptions: ['One'] };
+    await expect(db.query('select public.create_game_night($1,$2::jsonb,30)', ['A', JSON.stringify(invalidNight)])).rejects.toThrow('six');
+    await expect(db.query('select public.create_game($1,$2::jsonb,30)', ['A', JSON.stringify(deck.map(question => ({ ...question, verdictOptions: ['One'] })))])).rejects.toThrow('five or six');
+    const fiveChoices = deck.map(question => ({ ...question, verdictOptions: ['Nothing wrong', 'Depends on context', 'Boundary-crossing', 'Red flag / disrespectful', 'Cheating'] }));
+    const prior = (await db.query<{ game: SessionState }>('select public.create_game($1,$2::jsonb,30) as game', ['A', JSON.stringify(fiveChoices)])).rows[0].game;
+    await asUser(bob);
+    await db.query('select public.join_game($1,$2)', [prior.code, 'B']);
+    await asUser(host);
+    await db.query('select public.start_game($1)', [prior.id]);
+    await expect(db.query('select public.answer_game($1,0,$2::jsonb)', [prior.id, JSON.stringify(answer)])).rejects.toThrow('verdict is not in');
+    await db.query('select public.answer_game($1,0,$2::jsonb)', [prior.id, JSON.stringify({ ...answer, verdict: 1 })]);
+    await asUser(bob);
+    await db.query('select public.answer_game($1,0,$2::jsonb)', [prior.id, JSON.stringify({ ...answer, verdict: 1 })]);
+    await db.exec(readFileSync(new URL('../supabase/migrations/006_both_players_choice.sql', import.meta.url), 'utf8'));
+    const restored = (await db.query<{ game: SessionState }>('select public.game_state($1) as game', [prior.id])).rows[0].game;
+    expect(restored.deck).toEqual(fiveChoices);
+    expect(restored.answers[0][host]).toEqual({ ...answer, verdict: 1 });
+  });
+  it('allows Both in existing two-option rooms without rewriting their deck', async () => {
+    const host = crypto.randomUUID();
+    await db.query('insert into auth.users values ($1)', [host]);
+    await asUser(host);
+    const result = await db.query<{ game: SessionState }>('select public.create_game_mode($1,$2::jsonb,30,$3) as game', ['A', JSON.stringify(partyDecks['more-likely'].slice(0, 3)), 'more-likely']);
+    const game = result.rows[0].game;
+    await asUser(bob);
+    await db.query('select public.join_game($1,$2)', [game.code, 'B']);
+    await asUser(host);
+    await db.query('select public.start_game($1)', [game.id]);
+    await db.query('select public.answer_game($1,0,$2::jsonb)', [game.id, JSON.stringify({ choice: 2, explanation: '' })]);
+    await asUser(bob);
+    const paired = (await db.query<{ game: SessionState }>('select public.answer_game($1,0,$2::jsonb) as game', [game.id, JSON.stringify({ choice: 2, explanation: '' })])).rows[0].game;
+    expect(paired.deck).toEqual(game.deck);
+    expect(partyRecap(paired as ChoiceGameState).rounds[0].notes[0]).toContain('Both of us');
   });
 });

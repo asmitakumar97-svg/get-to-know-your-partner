@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowDownToLine } from 'lucide-react';
 
-export function ReportSave({ getText, filename = 'same-page-private-reflection.txt' }: { getText: () => string; filename?: string }) {
+export function ReportSave({ getText, filename = 'same-page-private-reflection.txt', variant = 'report' }: { getText: () => string; filename?: string; variant?: 'report' | 'journal' }) {
   const [error, setError] = useState('');
   function download() {
     setError('');
@@ -22,7 +22,7 @@ export function ReportSave({ getText, filename = 'same-page-private-reflection.t
     }
   }
   return <>
-    <footer className="report-save"><div><h3>A keepsake, just for you two.</h3><p>The download includes private answers and explanations. Save or share it only if you both agree.</p></div><button className="button cream" onClick={download}><ArrowDownToLine size={16} /> Save our report</button></footer>
+    <footer className="report-save"><div><h3>{variant === 'journal' ? 'Your private answer journal.' : 'A keepsake, just for you two.'}</h3><p>{variant === 'journal' ? 'This download includes your original answers and explanations.' : 'This download contains your personalised reading, not an answer recap.'} Save or share it only if you both agree.</p></div><button className="button cream" onClick={download}><ArrowDownToLine size={16} />{variant === 'journal' ? 'Save answer journal' : 'Save our report'}</button></footer>
     {error && <div className="alert error" role="alert">{error}</div>}
   </>;
 }

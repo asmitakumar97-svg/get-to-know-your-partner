@@ -4,6 +4,8 @@ export interface Scenario {
   title: string;
   text: string;
   prompt: string;
+  verdictOptions?: readonly string[];
+  reasonOptions?: readonly string[];
 }
 
 export const sections = ['Boundaries', 'Trust', 'Respect', 'Communication', 'Independence', 'Future expectations'] as const;

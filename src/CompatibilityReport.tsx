@@ -1,9 +1,12 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { BookHeart, Check, Flower2, Heart, MessageCircle, Sparkles } from 'lucide-react';
-import { emotions, factors, verdicts, type GameState } from './game';
+import { emotions, scenarioFactors, scenarioVerdicts, type GameState } from './game';
 import { buildReflection, reflectionText, type ReportRound } from './report';
 import { BotanicalArt } from './BotanicalArt';
 import { ReportSave } from './ReportSave';
+import { AnalysisPanel, ReportConversation } from './AnalysisPanel';
+import { analyzeSamePage } from './insights';
+import { responseLabel } from './writtenAnswers';
 
 const threadLabels = [
   ['verdict', 'How you see it', 'Verdict alignment'],
@@ -12,12 +15,14 @@ const threadLabels = [
 ] as const;
 
 export function CompatibilityReport({ game }: { game: GameState }) {
+  const answersId = useId();
   const result = useMemo(() => {
     try { return { report: buildReflection(game), error: '' }; }
     catch (error) { return { report: null, error: error instanceof Error ? error.message : 'Your report could not be generated.' }; }
   }, [game]);
   const report = result.report;
   if (!report) return <div role="alert" className="alert error">{result.error}</div>;
+  const analysis = analyzeSamePage(report);
 
   return <article className="compatibility-report" aria-labelledby="report-title">
     <header className="report-cover">
@@ -25,16 +30,18 @@ export function CompatibilityReport({ game }: { game: GameState }) {
       <div className="eyebrow">YOUR CONNECTION, IN CONVERSATION</div>
       <h2 id="report-title">A little more you.<br />A little more <em>us.</em></h2>
       <p className="report-names">{report.players.map(p => p.name).join(' & ')}</p>
-      <span className="report-cover-tag">Your compatibility reflection · {report.total} scenarios explored</span>
-      <p>A thoughtful look at your shared ground, different perspectives, and the conversations worth continuing.</p>
+      <span className="report-cover-tag">Your private relationship reading</span>
+      <p>A closer look at what may sit beneath the choices you made together.</p>
     </header>
 
     {report.isDemo && <div className="soft-note report-demo"><Sparkles size={18} /><span><strong>This is a sample report.</strong> Alex is simulated. These observations do not describe a real couple.</span></div>}
-    <div className="report-intro"><BookHeart size={23} /><div><h3>A reflection, not a relationship grade.</h3><p>Based only on the choices you made in this game. These scenarios cannot establish your overall compatibility, predict your future, or tell us your actual intentions. Different answers don’t make either person wrong.</p><p>{report.total < 5 ? 'This is a short snapshot. A few scenarios are a starting point, not a pattern or a complete picture.' : 'Repeated choices describe this session, not a fixed trait or a diagnosis.'} {report.total < report.deckSize && `Only ${report.total} of ${report.deckSize} scenarios have two complete answers; incomplete rounds are excluded.`}</p></div></div>
+    <div className="report-intro"><BookHeart size={23} /><div><h3>A reflection, not a verdict.</h3><p>These possibilities come from your recorded choices. Only you can say whether they fit your life; neither perspective is a flaw.</p></div></div>
 
+    <AnalysisPanel analysis={analysis} />
+    <details id={answersId} className="report-answer-archive"><summary>Revisit your answers & detailed breakdown</summary>
     <section className="report-section" aria-labelledby="threads-title">
       <ReportHeading number="01" title="The three threads of your connection" id="threads-title" subtitle="Each tells a different story. We keep them separate." />
-      <div className="report-threads">{threadLabels.map(([key, title, label]) => <div key={key}><span className="thread-decoration" aria-hidden="true">{key === 'verdict' ? '✦' : key === 'emotion' ? '♡' : '✿'}</span><h4>{title}</h4><span>{label}</span><p><strong>{report.counts[key]} of {report.total}</strong> shared choices</p><small>{key === 'verdict' ? 'The same interpretation of a situation.' : key === 'emotion' ? 'The same selected feeling, independently of the verdict.' : 'The same main factor, not proof of identical values.'}</small></div>)}</div>
+      <div className="report-threads">{threadLabels.map(([key, title, label]) => <div key={key}><span className="thread-decoration" aria-hidden="true">{key === 'verdict' ? '✦' : key === 'emotion' ? '♡' : '✿'}</span><h4>{title}</h4><span>{label}</span><small>{key === 'verdict' ? 'How each of you interprets a situation.' : key === 'emotion' ? 'How it feels to each of you, independently of the verdict.' : 'Which concern matters most, without assuming identical values.'}</small></div>)}</div>
     </section>
 
     <div className="report-perspectives">
@@ -44,7 +51,7 @@ export function CompatibilityReport({ game }: { game: GameState }) {
       </section>
       <section className="report-section explore-section" aria-labelledby="explore-title">
         <ReportHeading number="03" title="Where there’s more to discover" id="explore-title" subtitle="Not a list of problems. Invitations to get curious." />
-        {report.differentPerspectives.length ? report.differentPerspectives.map(round => <details className="insight-card" key={round.index}><summary><MessageCircle size={15} /><span>{round.scenario.title}<small>{round.differences.length} different {round.differences.length === 1 ? 'choice' : 'choices'} · {round.scenario.category}</small></span></summary><RoundEvidence round={round} names={report.players.map(p => p.name)} /><p className="insight-prompt">{round.prompt}</p></details>) : <p className="report-empty">You selected the same choices in every completed scenario. Your reasons and real-life expectations may still differ. Compare what those choices mean to each of you.</p>}
+        {report.differentPerspectives.length ? report.differentPerspectives.map(round => <details className="insight-card" key={round.index}><summary><MessageCircle size={15} /><span>{round.scenario.title}<small>{round.differences.length} different {round.differences.length === 1 ? 'choice' : 'choices'} · {round.scenario.category}</small></span></summary><RoundEvidence round={round} names={report.players.map(p => p.name)} /><p className="insight-prompt">{round.prompt}</p></details>) : <p className="report-empty">{report.structured ? 'No automatic differences were found among comparable choices. Written answers are not marked as matches or differences; explore them together in your journal.' : 'You selected the same choices in every completed scenario. Your reasons and real-life expectations may still differ. Compare what those choices mean to each of you.'}</p>}
       </section>
     </div>
 
@@ -52,7 +59,7 @@ export function CompatibilityReport({ game }: { game: GameState }) {
 
     <section className="report-section" aria-labelledby="themes-title">
       <ReportHeading number="04" title="Your connection, theme by theme" id="themes-title" subtitle="Only the scenarios you both answered count. No assumptions about unplayed themes." />
-      <div className="theme-grid">{report.themes.map(theme => <article className={`theme-card ${theme.rounds.length ? '' : 'theme-unplayed'}`} key={theme.category}><div className="theme-card-top"><Flower2 size={19} /><h4>{theme.category}</h4></div>{theme.rounds.length ? <><p>{theme.rounds.length} {theme.rounds.length === 1 ? 'scenario' : 'scenarios'} explored{theme.rounds.length === 1 ? ' · one example, not a trend' : ''}</p><dl>{threadLabels.map(([key, , label]) => <div key={key}><dt>{label}</dt><dd>{theme[key]} of {theme.rounds.length} shared</dd></div>)}</dl><details><summary>See the situations</summary><ul>{theme.rounds.map(round => <li key={round.index}>{round.scenario.title}</li>)}</ul></details></> : <p>Not explored in this session.<br />No conclusion to draw yet.</p>}</article>)}</div>
+      <div className="theme-grid">{report.themes.map(theme => <article className={`theme-card ${theme.rounds.length ? '' : 'theme-unplayed'}`} key={theme.category}><div className="theme-card-top"><Flower2 size={19} /><h4>{theme.category}</h4></div>{theme.rounds.length ? <><p>{theme.rounds.length} {theme.rounds.length === 1 ? 'scenario' : 'scenarios'} explored{theme.rounds.length === 1 ? ' · one example, not a trend' : ''}</p><details><summary>See the situations</summary><ul>{theme.rounds.map(round => <li key={round.index}>{round.scenario.title}</li>)}</ul></details></> : <p>Not explored in this session.<br />No conclusion to draw yet.</p>}</article>)}</div>
     </section>
 
     <section className="report-section" aria-labelledby="care-title">
@@ -65,7 +72,9 @@ export function CompatibilityReport({ game }: { game: GameState }) {
       <div className="journal report-journal">{report.rounds.map(round => <details key={round.index}><summary>{round.index + 1}. {round.scenario.title}<span>{round.scenario.category}</span></summary><RoundEvidence round={round} names={report.players.map(p => p.name)} /><p className="journal-prompt">{round.prompt}</p></details>)}</div>
     </section>
 
-    <section className="report-next"><BotanicalArt className="next-botanical" variant="sprig" /><div className="eyebrow">TAKE A LITTLE OF THIS WITH YOU</div><h3>One conversation.<br />One small next step.</h3><ol><li>Each share one thing you understand better about the other.</li><li>Make one specific request, without asking your partner to feel differently.</li><li>Choose one agreement you both freely want, then plan a gentle check-in.</li></ol><p>You don’t have to solve everything tonight. Take a break whenever either of you needs one.</p></section>
+    <ReportSave getText={() => reflectionText(report, 'archive')} filename="same-page-private-answer-journal.txt" variant="journal" />
+    </details>
+    <ReportConversation analysis={analysis} answersId={answersId} />
 
     <ReportSave getText={() => reflectionText(report)} />
   </article>;
@@ -76,5 +85,5 @@ function ReportHeading({ number, title, subtitle, id }: { number: string; title:
 }
 
 function RoundEvidence({ round, names }: { round: ReportRound; names: string[] }) {
-  return <div className="report-evidence"><p>{round.scenario.text}</p>{round.answers.map((answer, i) => <div className="journal-answer" key={i}><strong>{names[i]}</strong><dl><div><dt>Verdict</dt><dd>{verdicts[answer.verdict]}</dd></div><div><dt>Feeling</dt><dd>{emotions[answer.emotion]}</dd></div><div><dt>Main factor</dt><dd>{factors[answer.factor]}</dd></div></dl>{answer.explanation && <blockquote>“{answer.explanation}”</blockquote>}</div>)}</div>;
+  return <div className="report-evidence"><p>{round.scenario.text}</p>{round.answers.map((answer, i) => <div className="journal-answer" key={i}><strong>{names[i]}</strong><dl><div><dt>Verdict</dt><dd>{responseLabel(scenarioVerdicts(round.scenario), answer.verdict, answer.customVerdict)}</dd></div><div><dt>Feeling</dt><dd>{responseLabel(emotions, answer.emotion, answer.customEmotion)}</dd></div><div><dt>Main reason</dt><dd>{responseLabel(scenarioFactors(round.scenario), answer.factor, answer.customFactor)}</dd></div></dl>{answer.explanation && <blockquote>“{answer.explanation}”</blockquote>}</div>)}</div>;
 }

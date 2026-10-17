@@ -7,7 +7,7 @@ self.addEventListener('install', event => {
     const response = await fetch(root, { cache: 'reload' });
     if (!response.ok) throw new Error('Could not cache the offline playroom.');
     const html = await response.text();
-    const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)]
+    const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css|svg))"/g)]
       .map(match => new URL(match[1], root).href);
     await cache.put(root, new Response(html, { headers: { 'Content-Type': 'text/html' } }));
     await cache.addAll([...assets, new URL('floral-tile.svg', root).href]);

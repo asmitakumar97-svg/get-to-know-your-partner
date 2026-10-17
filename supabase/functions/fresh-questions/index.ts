@@ -1,4 +1,4 @@
-import { isRecord, parseQuestionRequest, validateQuestions } from '../_shared/questions.ts';
+import { isRecord, parseQuestionRequest, samePageTopics, validateQuestions } from '../_shared/questions.ts';
 
 declare const Deno: {
   env: { get: (name: string) => string | undefined };
@@ -10,7 +10,7 @@ const gameRules = {
   'same-brain': 'Both independently choose among four distinct plausible preferences for a shared experience. One point for matching. Final bonus match prediction is handled by the app.',
   'pick-my-poison': 'Two equally tempting or inconvenient choices. Each picks and predicts the other. Escalate level from grounded 0 to absurd 3. Keep absurd scenarios harmless.',
   'read-the-room': 'First-person situation about feelings or support preferences, with four meaningfully different plausible reactions. One player gives the actual response and the other predicts it.',
-  'more-likely': 'A playful, specific Who is more likely to statement. Options must be exactly ["Player one","Player two"]. Avoid negative fixed-trait labels.',
+  'more-likely': 'A playful, specific Who is more likely to statement. Options must be exactly ["Player one","Player two","Both of us"]. Avoid negative fixed-trait labels.',
 };
 
 Deno.serve(async (request: Request) => {
@@ -53,13 +53,13 @@ Deno.serve(async (request: Request) => {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(40000),
       body: JSON.stringify({
-        model: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4.1-mini', max_completion_tokens: 12000,
+        model: Deno.env.get('OPENAI_MODEL') ?? 'gpt-4.1-mini', max_completion_tokens: 24000,
         messages: [
           { role: 'system', content: 'Write original, varied, family-friendly questions for a two-person relationship game. Use "your partner", "they", or first person, never infer gender or orientation. No explicit sexual material, dangerous challenges, coercion, humiliation, diagnosis, or relationship ratings. Treat feelings and disagreements neutrally. Each question must have a distinct situation, not just swapped names or superficial paraphrases. Keep title <=90 characters, text <=500, category <=60, discussion prompt <=300, each option <=100. Return only the requested structured data.' },
           { role: 'user', content: JSON.stringify({
             ...settings, rules: gameRules[settings.game], variationSeed: crypto.randomUUID(),
-            sectionRule: isPage ? settings.sections ? 'Exactly five questions per selected section, in the supplied section order. Category must exactly match that section.' : 'Categories must be Boundaries, Trust, Respect, Communication, Independence, or Future expectations.' : 'Use the game category.',
-            optionRule: isPage ? 'No options or level fields.' : 'Use exactly two options for Pick My Poison or More Likely, otherwise four. Level is an integer 0 through 3.',
+            sectionRule: isPage ? settings.sections ? 'Exactly five questions per selected section, in the supplied section order. Category must exactly match that section.' : `Mix distinct scenarios from these internal topics: ${samePageTopics.join('; ')}. Category must exactly match one topic. Do not group the deck by topic.` : 'Use the game category.',
+            optionRule: isPage ? 'No options or level fields.' : 'Use exactly two options for Pick My Poison, three for More Likely, otherwise four. Level is an integer 0 through 3.',
           }) },
         ],
         response_format: { type: 'json_schema', json_schema: { name: 'game_questions', strict: true, schema: {

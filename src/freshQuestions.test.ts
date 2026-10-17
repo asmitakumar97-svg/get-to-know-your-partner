@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { chooseOfflineQuestions, prepareQuestions, readQuestionHistory, rememberQuestions } from './freshQuestions';
 import { offlineBank } from './offlineQuestions';
-import { games } from './catalog';
 import { createGame } from './game';
 import { createNight } from './night';
 import { sections, selectedSectionsFromDeck } from './scenarios';
-import { parseQuestionRequest, questionFingerprint, validateQuestions, type QuestionRequest } from '../supabase/functions/_shared/questions';
+import { parseQuestionRequest, questionFingerprint, validateQuestions, questionGames, type QuestionRequest } from '../supabase/functions/_shared/questions';
+
+const games = questionGames.map(id => ({ id }));
 
 const memory = () => {
   const data = new Map<string, string>();
   return { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value); } };
 };
 describe('Fresh questions and offline repeat avoidance', () => {
-  it('ships over 600 distinct, gender-neutral offline situations with valid game shapes', () => {
+  it('ships over 500 distinct, gender-neutral offline situations with valid game shapes', () => {
     const banks = games.map(game => offlineBank(game.id));
-    expect(banks.flat().length).toBeGreaterThan(600);
+    expect(banks.flat().length).toBeGreaterThan(500);
+    expect(banks[0]).toHaveLength(100);
     for (const [index, bank] of banks.entries()) {
       expect(new Set(bank.map(questionFingerprint)).size).toBe(bank.length);
       for (const question of bank) {
@@ -24,6 +26,15 @@ describe('Fresh questions and offline repeat avoidance', () => {
       const deck = chooseOfflineQuestions({ game, count: 20 }, []).entry.deck;
       expect(deck).toHaveLength(20);
       expect(() => validateQuestions({ game, count: 20 }, { questions: deck })).not.toThrow();
+    }
+  });
+  it('supplies complete 30/50-question offline decks and valid generated request shapes', async () => {
+    for (const game of games) for (const count of [30, 50]) {
+      const request = { game: game.id, count };
+      const prepared = await prepareQuestions([request], null, memory());
+      expect(prepared.entries[0].deck).toHaveLength(count);
+      expect(new Set(prepared.entries[0].deck.map(questionFingerprint)).size).toBe(count);
+      expect(() => validateQuestions(request, { questions: prepared.entries[0].deck })).not.toThrow();
     }
   });
   it('does not repeat on this device across new sessions or refreshes until a selection is exhausted', async () => {
@@ -89,7 +100,7 @@ describe('Fresh questions and offline repeat avoidance', () => {
     expect(() => readQuestionHistory({ getItem: () => '{"same-page":[3]}' })).toThrow('repeat tracking');
   });
   it('validates counts, option shapes, sections, difficulty, duplicates, and neutral wording', () => {
-    expect(() => parseQuestionRequest({ game: 'same-page', count: 30 })).toThrow();
+    expect(() => parseQuestionRequest({ game: 'same-page', count: 40 })).toThrow();
     expect(() => parseQuestionRequest({ game: 'same-brain', count: 3, answers: 'private' })).toThrow('Only game settings');
     expect(() => parseQuestionRequest({ game: 'same-page', count: 10, sections: ['Trust', 'Trust'] })).toThrow();
     const deck = offlineBank('same-brain').slice(0, 3);

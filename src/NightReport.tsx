@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { ArrowRight, Check, Flower2, Heart, RotateCcw } from 'lucide-react';
 import { gameDefinition } from './catalog';
 import { isChoiceGame, type SessionState } from './game';
@@ -6,6 +7,7 @@ import { CompatibilityReport } from './CompatibilityReport';
 import { PartyReport } from './PartyGame';
 import { ReportSave } from './ReportSave';
 import { BotanicalArt } from './BotanicalArt';
+import { AnalysisPanel, ReportConversation } from './AnalysisPanel';
 
 function GameReport({ game }: { game: SessionState }) {
   return isChoiceGame(game) ? <PartyReport game={game} /> : <CompatibilityReport game={game} />;
@@ -55,22 +57,28 @@ export function NightRecap({ game, myId, busy, onNext, onReplay, onExit }: {
 function CombinedReport({ game, busy, onReplay, onExit }: {
   game: SessionState; busy: boolean; onReplay: () => Promise<void>; onExit: () => Promise<void>;
 }) {
+  const answersId = useId();
   let report: ReturnType<typeof nightReflection>;
   try { report = nightReflection(game); }
   catch (error) { return <div className="alert error" role="alert">{error instanceof Error ? error.message : 'Your combined report could not be generated.'}</div>; }
   return <article className="night-report">
-    <header className="report-cover"><BotanicalArt className="report-bouquet" /><div className="eyebrow">YOUR TWO-PERSON PLAYGROUND · THE WHOLE NIGHT</div><h2>Many little games.<br />One more chapter of <em>us.</em></h2><p className="report-names">{game.players.map(p => p.name).join(' & ')}</p><span className="report-cover-tag">{report.summaries.length} games · {report.total} rounds explored</span></header>
+    <header className="report-cover"><BotanicalArt className="report-bouquet" /><div className="eyebrow">YOUR TWO-PERSON PLAYGROUND · THE WHOLE NIGHT</div><h2>Many little games.<br />One more chapter of <em>us.</em></h2><p className="report-names">{game.players.map(p => p.name).join(' & ')}</p><span className="report-cover-tag">Your shared game-night reading</span></header>
     {game.mode === 'demo' && <div className="soft-note">Sample game night: one partner is simulated, not a real person.</div>}
-    <div className="report-intro"><Heart size={23} /><div><h3>Your relationship, in conversation. Not a grade.</h3><p>A reflection on what you actually chose, predicted, and felt tonight. Shared choices, emotional perspectives, and playful points stay separate. They cannot diagnose your relationship or predict its future.</p></div></div>
-    <section className="report-section"><header className="report-heading"><Flower2 /><div><h3>Five ways to discover. Your own little story.</h3><p>Only the games you played appear below. No combined compatibility percentage.</p></div></header>
-      <div className="night-summary-grid">{report.summaries.map(item => <section className="night-summary-card" key={item.title}><h4>{item.title}</h4><p>{item.total} completed rounds</p><ul>{item.lines.map(line => <li key={line}>{line}</li>)}</ul>
+    <div className="report-intro"><Heart size={23} /><div><h3>Your relationship, in conversation. Not a grade.</h3><p>A reflection on what you actually chose, predicted, and felt tonight. Your perspectives are invitations to understand each other, not a diagnosis of your relationship or a prediction of its future.</p></div></div>
+    <AnalysisPanel analysis={report.analysis} />
+    <details id={answersId} className="report-answer-archive"><summary>Revisit each game & your recorded answers</summary>
+    <section className="report-section"><header className="report-heading"><Flower2 /><div><h3>Five ways to discover. Your own little story.</h3><p>Only the games you played appear below. Each offers a different perspective on your connection.</p></div></header>
+      <div className="night-summary-grid">{report.summaries.map(item => <section className="night-summary-card" key={item.title}><h4>{item.title}</h4><p>{item.total} completed rounds</p>
+        <h5>{item.analysis.headline}</h5><p>{item.analysis.summary}</p>
         <h5>Shared ground & accurate predictions</h5>{item.shared.length ? <p>{item.shared[0]}</p> : <p>No exact shared choice or fully accurate prediction in these rounds. That is not a measure of your connection.</p>}
         <h5>A little more to discover</h5>{item.discoveries.length ? <p>{item.discoveries[0]}</p> : <p>No unexpected selected answers this time. Your reasons and the context can still be different.</p>}
         <h5>Keep this conversation going</h5><p>{item.prompts[0]}</p>
       </section>)}</div>
     </section>
-    <section className="report-next"><h3>One thing to take into tomorrow.</h3><p>Each share one thing you learned about your person. Ask what small gesture, conversation, or shared plan would feel good next. Let them tell you, rather than treating a game answer as a fixed rule.</p></section>
     <NightArchive game={game} />
+    <ReportSave getText={() => nightReportText(game, 'archive')} filename="our-private-game-night-answer-journal.txt" variant="journal" />
+    </details>
+    <ReportConversation analysis={report.analysis} answersId={answersId} />
     <ReportSave getText={() => nightReportText(game)} filename="our-private-game-night-report.txt" />
     <div className="recap-actions"><button className="button primary" disabled={busy} onClick={() => void onReplay()}><RotateCcw size={16} /> Play this playlist again</button><button className="button cream" disabled={busy} onClick={() => void onExit()}>Back to playground</button></div>
   </article>;

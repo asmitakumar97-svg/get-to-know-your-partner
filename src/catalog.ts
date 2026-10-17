@@ -1,7 +1,13 @@
-import { scenarios, type Scenario } from './scenarios';
+import type { Scenario } from './scenarios';
+import { samePageLibrary } from './samePageLibrary';
+import { extraPartyDecks } from './offlineExtras';
+import { partyRoundCounts } from '../supabase/functions/_shared/questions';
+import { empathyQuestions, repairQuestions, relationshipDefinitions, type RelationshipGameId } from './relationshipGames';
+import { buildAdventureDeck, type AdventureChapter } from './adventures';
 
 export const partyGameIds = ['same-brain', 'pick-my-poison', 'read-the-room', 'more-likely'] as const;
-export type PartyGameId = typeof partyGameIds[number];
+export type LegacyPartyGameId = typeof partyGameIds[number];
+export type PartyGameId = LegacyPartyGameId | RelationshipGameId;
 export type GameId = 'same-page' | PartyGameId;
 export interface GameDefinition {
   id: GameId;
@@ -9,16 +15,17 @@ export interface GameDefinition {
   category: string;
   description: string;
   rules: string;
-  scoring: string;
+  reflection: string;
   quickPlay: string;
   color: string;
 }
 export const games: GameDefinition[] = [
-  { id: 'same-page', title: 'Same Page?', category: 'Go deeper', description: 'Same situation. Two perspectives. Find the conversation in between.', quickPlay: 'Pick your sections. Answer five situations in each with a verdict, a feeling, and what matters most. Reveal together, then talk.', rules: 'Choose one or more of six sections, with five questions per section. Choose a verdict, a feeling, and what matters most. Reveal only after both submit, then pause to discuss.', scoring: 'Three independent reflection threads. No relationship grade.', color: 'pink' },
-  { id: 'same-brain', title: 'Same Brain?', category: 'Think alike', description: 'Two minds. One question. Are you thinking what I’m thinking?', quickPlay: 'Choose separately, then reveal. Matching answers earn a shared point. In the final round, predict whether you’ll match, too.', rules: 'Both choose independently. In the final bonus round, also predict whether your choices will match.', scoring: '1 shared point per matching round. Final round: each earns 1 bonus point for correctly predicting match or no match.', color: 'lavender' },
-  { id: 'pick-my-poison', title: 'Pick My Poison', category: 'Predict each other', description: 'Two impossible choices. How well can you predict your person?', quickPlay: 'Pick between two dilemmas and guess your partner’s choice. Reveal both answers; every accurate prediction earns a point.', rules: 'Choose your own answer and predict your partner’s. Dilemmas get more ridiculous as you go.', scoring: 'Each player earns 1 point for correctly predicting the other’s actual choice.', color: 'peach' },
-  { id: 'read-the-room', title: 'Read the Room', category: 'Know me', description: 'Advice, a hug, a snack, or space? Find out what actually fits.', quickPlay: 'One answers honestly; the other predicts that response. Reveal and talk, then swap roles. Only predictions earn points.', rules: 'Take turns being the responder. The responder chooses their real answer; the other predicts it. Roles alternate every round.', scoring: 'The predictor earns 1 point for a matching prediction. The responder’s feeling or preference is never marked right or wrong.', color: 'green' },
-  { id: 'more-likely', title: 'Who’s More Likely To…?', category: 'Our story', description: 'Your person, or you? Compare how you see each other.', quickPlay: 'Both secretly pick the person who fits the statement. Reveal together: choosing the same person earns one shared point.', rules: 'Both secretly choose the person who best fits the statement. Choices refer to the same named players on both devices.', scoring: '1 shared point when both select the same person. Agreement is a perception, not a personality diagnosis.', color: 'pink' },
+  { id: 'same-page', title: 'Same Page?', category: 'Go deeper', description: 'Same situation. Two perspectives. Find the conversation in between.', quickPlay: 'Choose a game length. Answer mixed situations with a verdict, a feeling, and what matters most. Reveal together, then talk.', rules: 'Choose your take from six options, including Okay since we discussed, then a feeling and what matters most. Reveal only after both submit, then pause to discuss.', reflection: 'Explore interpretations, feelings, and priorities separately. Neither perspective is wrong.', color: 'pink' },
+  { id: 'same-brain', title: 'Same Brain?', category: 'Think alike', description: 'Two minds. One question. Are you thinking what I’m thinking?', quickPlay: 'Choose separately, then reveal and explore your reasons. In the final round, also share whether you expect your choices to match.', rules: 'Both choose independently. In the final round, also predict whether your choices will match. Reveal together and discuss.', reflection: 'Discover shared preferences and different ways of thinking, without needing to think alike.', color: 'lavender' },
+  { id: 'pick-my-poison', title: 'Pick My Poison', category: 'Predict each other', description: 'Two impossible choices. What might your person choose?', quickPlay: 'Pick between two dilemmas and guess your partner’s choice. Reveal together and explore the trade-offs behind your answers.', rules: 'Choose your own answer and predict your partner’s. Dilemmas get more ridiculous as you go.', reflection: 'Explore what each of you would choose and what surprises you about the other’s preferences.', color: 'peach' },
+  { id: 'read-the-room', title: 'Read the Room', category: 'Know me', description: 'Advice, a hug, a snack, or space? Find out what actually fits.', quickPlay: 'One answers honestly; the other predicts that response. Reveal and talk, then swap roles.', rules: 'Take turns being the responder. The responder chooses their real answer; the other predicts it. Roles alternate every round.', reflection: 'Learn what support feels right in each situation. A surprise is an opening to ask, not a mistake.', color: 'green' },
+  { id: 'more-likely', title: 'Who’s More Likely To…?', category: 'Our story', description: 'Your person, you, or both? Compare how you see each other.', quickPlay: 'Secretly choose yourself, your partner, or both of you. Reveal together and share what led to your choice.', rules: 'Both secretly choose a named player or Both of us. Choices refer to the same named players on both devices.', reflection: 'Explore how you see each other. Agreement is a perception, not a personality diagnosis.', color: 'pink' },
+  ...relationshipDefinitions,
 ];
 export function gameDefinition(id: GameId) {
   const result = games.find(game => game.id === id);
@@ -29,7 +36,7 @@ export function isGameId(value: unknown): value is GameId {
   return typeof value === 'string' && games.some(game => game.id === value);
 }
 
-export interface ChoiceScenario extends Scenario { options: string[]; level: number }
+export interface ChoiceScenario extends Scenario { options: string[]; level: number; tags?: string[]; adventure?: AdventureChapter }
 type Seed = [title: string, text: string, options: string[], prompt: string];
 function seed(id: PartyGameId, items: Seed[]): ChoiceScenario[] {
   return items.map(([title, text, options, prompt], i) => ({
@@ -130,16 +137,37 @@ export const partyDecks: Record<PartyGameId, ChoiceScenario[]> = {
   'same-brain': seed('same-brain', brain),
   'pick-my-poison': seed('pick-my-poison', poison),
   'read-the-room': seed('read-the-room', room),
-  'more-likely': seed('more-likely', likelyStatements.map(([title, text]) => [title, text, ['Player one', 'Player two'], 'What memory or small observation made you choose that person? Does your partner see it the same way?'])),
+  'more-likely': seed('more-likely', likelyStatements.map(([title, text]) => [title, text, ['Player one', 'Player two', 'Both of us'], 'What memory or small observation made you choose that answer? Does your partner see it the same way?'])),
+  'if-i-were-you': empathyQuestions,
+  'when-things-get-hard': repairQuestions,
+  'us-against-the-world': buildAdventureDeck('stranded'),
 };
 
 export function buildDeck(id: PartyGameId, count: number): ChoiceScenario[];
 export function buildDeck(id: 'same-page', count: number): Scenario[];
 export function buildDeck(id: GameId, count: number): Scenario[];
 export function buildDeck(id: GameId, count: number): Scenario[] {
-  if (![3, 5, 10, 20].includes(count)) throw new Error('Choose 3, 5, 10, or 20 rounds.');
-  if (id === 'same-page') return scenarios.slice(0, count);
-  const deck = [...partyDecks[id]];
+  if (!partyRoundCounts.includes(count)) throw new Error('Choose a supported number of rounds.');
+  if (id === 'us-against-the-world') return buildAdventureDeck();
+  if (id === 'if-i-were-you' || id === 'when-things-get-hard') {
+    if (count > partyDecks[id].length) throw new Error('Choose up to 30 questions for this curated game.');
+    const deck = [...partyDecks[id]];
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck.slice(0, count);
+  }
+  if (id === 'same-page') {
+    const deck = [...samePageLibrary];
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck.slice(0, count);
+  }
+  const deck = count > 20 ? [...partyDecks[id], ...extraPartyDecks[id]] : [...partyDecks[id]];
+  if (id === 'pick-my-poison') deck.sort((a, b) => a.level - b.level);
   if (id === 'pick-my-poison') {
     // Spread short games across the full escalation without shuffling the difficulty.
     return Array.from({ length: count }, (_, i) => deck[Math.round(i * (deck.length - 1) / (count - 1))]);

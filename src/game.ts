@@ -1,14 +1,32 @@
-import { buildSectionDeck, scenarios, type Scenario, type Section } from './scenarios';
+import { buildSectionDeck, type Scenario, type Section } from './scenarios';
+import { samePageLibrary } from './samePageLibrary';
 import type { ChoiceScenario, PartyGameId } from './catalog';
 import type { GameNight } from './night';
+import type { GameReflection } from './relationshipGames';
+import { compareResponses, validResponse } from './writtenAnswers';
 
 export const verdicts = ['Nothing wrong', 'Neutral / depends on context', 'Micro-cheating', 'Red flag / disrespectful', 'Cheating'] as const;
+export function scenarioVerdicts(scenario: Scenario): readonly string[] {
+  if (scenario.verdictOptions === undefined) return verdicts;
+  if (![5, 6].includes(scenario.verdictOptions.length) || scenario.verdictOptions.some(option => typeof option !== 'string' || !option.trim())) throw new Error('This saved scenario has invalid verdict options.');
+  return scenario.verdictOptions;
+}
 export const emotions = ['Completely fine', 'Confused / uncomfortable', 'Hurt / disrespected', 'Jealous / insecure', 'Betrayed / trust affected'] as const;
 export const factors = ['The action itself', 'Context and intentions', 'Transparency', 'Previously agreed boundaries'] as const;
-export interface Answer { verdict: number; emotion: number; factor: number; explanation: string }
-export interface ChoiceAnswer { choice: number; prediction?: number; matchPrediction?: boolean; explanation: string }
+export function scenarioFactors(scenario: Scenario): readonly string[] {
+  if (scenario.reasonOptions === undefined) return factors;
+  if (scenario.reasonOptions.length !== 6 || scenario.reasonOptions.some(option => typeof option !== 'string' || !option.trim())) throw new Error('This saved scenario has invalid reasoning options.');
+  return scenario.reasonOptions;
+}
+export interface Answer { verdict: number; emotion: number; factor: number; explanation: string; customVerdict?: string; customEmotion?: string; customFactor?: string }
+export interface ChoiceAnswer { choice: number; prediction?: number; matchPrediction?: boolean; explanation: string; items?: number[]; customChoice?: string; customPrediction?: string }
 export interface Player { id: string; name: string; left: boolean }
 interface BaseGameState<A, S extends Scenario = Scenario> {
+  switchedQuestions?: Pick<Scenario, 'id' | 'text'>[];
+  skippedRounds?: number[];
+  reflections?: Record<string, Record<string, GameReflection>>;
+  myReflections?: Record<string, GameReflection>;
+  myClues?: Record<string, string>;
   night?: GameNight;
   revision?: number;
   id: string;
@@ -30,17 +48,16 @@ export type SessionState = GameState | ChoiceGameState;
 export function isChoiceGame(state: SessionState): state is ChoiceGameState {
   return state.gameType !== undefined && state.gameType !== 'same-page';
 }
-export const validAnswer = (a: Answer) =>
-  Number.isInteger(a.verdict) && a.verdict >= 0 && a.verdict < verdicts.length &&
-  Number.isInteger(a.emotion) && a.emotion >= 0 && a.emotion < emotions.length &&
-  Number.isInteger(a.factor) && a.factor >= 0 && a.factor < factors.length &&
+export const validAnswer = (a: Answer, scenario?: Scenario) =>
+  validResponse(a.verdict, a.customVerdict, scenario ? scenarioVerdicts(scenario).length : verdicts.length) &&
+  validResponse(a.emotion, a.customEmotion, emotions.length) &&
+  validResponse(a.factor, a.customFactor, scenario ? scenarioFactors(scenario).length : factors.length) &&
   typeof a.explanation === 'string' && a.explanation.length <= 600;
 
 export function createGame(mode: 'local' | 'demo', names: string[], count: number, seconds: number, selectedSections?: readonly Section[], preparedDeck?: Scenario[]): GameState {
-  const deck = [...scenarios];
-  // Keep the opening scenario familiar; shuffle the rest without bias.
-  for (let i = deck.length - 1; i > 1; i--) {
-    const j = 1 + Math.floor(Math.random() * i);
+  const deck = [...samePageLibrary];
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
   return {
@@ -52,7 +69,7 @@ export function createGame(mode: 'local' | 'demo', names: string[], count: numbe
 }
 
 export function submitAnswer(state: GameState, playerId: string, answer: Answer, now = Date.now()): GameState {
-  if (!validAnswer(answer)) throw new Error('Please answer all three questions before submitting.');
+  if (!validAnswer(answer, state.deck[state.round])) throw new Error('Please answer all three questions before submitting.');
   if (state.phase !== 'answering' || !state.players.some(p => p.id === playerId && !p.left)) throw new Error('This round is not accepting answers.');
   if (state.submitted.includes(playerId)) return state;
   const roundAnswers = { ...state.answers[state.round], [playerId]: answer };
@@ -68,9 +85,8 @@ export function afterSubmission<S extends SessionState>(state: S, submitted: str
   return { ...state, submitted, phase: both ? 'discussion' : 'answering', discussionUntil: both ? now + state.discussionSeconds * 1000 : null };
 }
 
-export function readyForNext<S extends SessionState>(state: S, playerId: string, now = Date.now()): S {
+export function readyForNext<S extends SessionState>(state: S, playerId: string, _now?: number): S {
   if (state.phase !== 'discussion' || !state.players.some(p => p.id === playerId && !p.left)) throw new Error('Discussion is not active.');
-  if (now < (state.discussionUntil ?? 0)) throw new Error('Take a little time to discuss before continuing.');
   const ready = [...new Set([...state.ready, playerId])];
   if (ready.length < 2) return { ...state, ready };
   return {
@@ -81,7 +97,7 @@ export function readyForNext<S extends SessionState>(state: S, playerId: string,
 }
 
 export function alignment(a: Answer, b: Answer) {
-  return { verdict: a.verdict === b.verdict, emotion: a.emotion === b.emotion, values: a.factor === b.factor };
+  return { verdict: compareResponses(a.verdict, b.verdict), emotion: compareResponses(a.emotion, b.emotion), values: compareResponses(a.factor, b.factor) };
 }
 
 export function recap(state: GameState) {

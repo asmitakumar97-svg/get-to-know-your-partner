@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { alignment, createGame, readyForNext, recap, submitAnswer, validAnswer, type Answer } from './game';
 import { buildSectionDeck, scenarios, sections, selectedSectionsFromDeck } from './scenarios';
 import { partyDecks } from './catalog';
+import { samePageLibrary } from './samePageLibrary';
 const answer: Answer = { verdict: 1, emotion: 2, factor: 3, explanation: 'Let’s talk.' };
 
 describe('Same Page game rules', () => {
@@ -12,9 +13,9 @@ describe('Same Page game rules', () => {
     for (const section of sections) expect(scenarios.filter(s => s.category === section)).toHaveLength(5);
     expect(scenarios[0].text).toBe('Your partner buys flowers for someone else and says they were just being nice.');
   });
-  it('uses gender-neutral scenarios and prompts across all five games', () => {
+  it('uses gender-neutral scenarios and prompts across all eight games', () => {
     const all = [...scenarios, ...Object.values(partyDecks).flat()];
-    expect(all).toHaveLength(110);
+    expect(all).toHaveLength(175);
     for (const scenario of all) expect(`${scenario.title} ${scenario.text} ${scenario.prompt}`)
       .not.toMatch(/\b(boyfriend|girlfriend|girl|boy|woman|man|women|men|husband|wife|he|she|his|her)\b/i);
   });
@@ -31,10 +32,10 @@ describe('Same Page game rules', () => {
     expect(selectedSectionsFromDeck(scenarios.slice(0, 3))).toBeUndefined();
     expect(selectedSectionsFromDeck([])).toBeUndefined();
   });
-  it('creates a distinct deck and keeps the first scenario', () => {
+  it('creates a mixed distinct deck from the curated library without a fixed opening question', () => {
     const state = createGame('local', ['A', 'B'], 10, 60);
     expect(state.deck).toHaveLength(10);
-    expect(state.deck[0].id).toBe('flowers');
+    expect(state.deck.every(question => samePageLibrary.includes(question))).toBe(true);
     expect(new Set(state.deck.map(s => s.id)).size).toBe(10);
   });
   it('waits for two submissions, deduplicates, and starts a discussion timer', () => {
@@ -46,11 +47,10 @@ describe('Same Page game rules', () => {
     const both = submitAnswer(first, 'player-1', answer, 2000);
     expect(both.phase).toBe('discussion');
     expect(both.discussionUntil).toBe(62000);
-    expect(() => readyForNext(both, 'player-0', 61999)).toThrow('discuss');
-    const ready = readyForNext(both, 'player-0', 62000);
+    const ready = readyForNext(both, 'player-0', 2001);
     expect(ready.phase).toBe('discussion');
-    expect(readyForNext(ready, 'player-0', 62000).ready).toHaveLength(1);
-    expect(readyForNext(ready, 'player-1', 62000).round).toBe(1);
+    expect(readyForNext(ready, 'player-0', 2001).ready).toHaveLength(1);
+    expect(readyForNext(ready, 'player-1', 2001).round).toBe(1);
   });
   it('keeps emotional, verdict, and values alignment independent', () => {
     expect(alignment(answer, { ...answer, verdict: 4 })).toEqual({ verdict: false, emotion: true, values: true });

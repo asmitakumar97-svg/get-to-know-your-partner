@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { games } from './catalog';
+import { games as allGames } from './catalog';
+import { isRelationshipGame } from './relationshipGames';
 import { isChoiceGame, readyForNext, submitAnswer, type SessionState } from './game';
 import { submitChoiceAnswer } from './party';
 import { advanceNight, buildPlaylist, createNight, nightReflection, nightReportText } from './night';
+const games = allGames.filter(game => !isRelationshipGame(game.id));
 
 function completeGame(game: SessionState): SessionState {
   let next = game;
@@ -36,7 +38,7 @@ function finishNight(game: SessionState): SessionState {
 
 describe('two-person game-night playlists', () => {
   it('validates selection, round counts, names, and discussion time', () => {
-    expect(() => buildPlaylist(['same-page'], 3)).toThrow('two to five');
+    expect(() => buildPlaylist(['same-page'], 3)).toThrow('two to eight');
     expect(() => buildPlaylist(['same-brain', 'same-brain'], 3)).toThrow('different');
     expect(() => buildPlaylist(['same-brain', 'same-page'], 4)).toThrow('rounds');
     expect(() => createNight('local', ['Mia', ''], ['same-page', 'same-brain'], 3, 30)).toThrow('name');
@@ -87,20 +89,20 @@ describe('two-person game-night playlists', () => {
     const result = nightReflection(completed);
     expect(result.summaries).toHaveLength(5);
     expect(result.total).toBe(15);
-    expect(result.summaries[0].lines).toEqual(['Verdict: 3 of 3 shared choices.', 'Emotion: 0 of 3 shared choices.', 'Main factor: 0 of 3 shared choices.']);
-    expect(result.summaries[1].lines).toContain('Shared choices: 3 of 3 rounds.');
-    expect(result.summaries[1].lines).toContain('Mia: 1 of 1 match-prediction bonuses.');
-    expect(result.summaries[3].lines).toEqual(['Mia: 1 of 1 accurate predictions.', 'Sam: 2 of 2 accurate predictions.']);
+    expect(result.summaries.every(summary => !('lines' in summary))).toBe(true);
+    expect(result.summaries[1].shared).toHaveLength(3);
+    expect(result.summaries[3].discoveries).toHaveLength(0);
     expect(result.summaries[0].discoveries[0]).toContain('Mia');
     expect(result.summaries[0].discoveries[0]).toContain('Sam');
     expect(advanceNight(completed, 'player-0', 4)).toBe(completed);
-    const text = nightReportText(completed);
+    const text = nightReportText(completed, 'archive');
     expect(text).toContain('5 games, 15 completed rounds.');
     expect(text).toContain('A private game-night thought.');
     expect(text).toContain('My boundary and my context.');
     expect(text).toContain('not a relationship grade');
     expect(text).not.toContain('%');
-    expect(nightReportText(JSON.parse(JSON.stringify(completed)))).toBe(text);
+    expect(text).not.toMatch(/shared points?|bonus|prediction points?|\d+\s+points?/i);
+    expect(nightReportText(JSON.parse(JSON.stringify(completed)), 'archive')).toBe(text);
   });
   it('rejects damaged completed evidence instead of manufacturing a successful report', () => {
     const done = finishNight(createNight('local', ['Mia', 'Sam'], ['same-page', 'same-brain'], 3, 30));

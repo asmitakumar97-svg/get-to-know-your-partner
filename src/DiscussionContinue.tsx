@@ -5,11 +5,11 @@ export function DiscussionContinue({ online, remaining, busy, waiting, onContinu
 }) {
   return <>
     <div className="discussion-bottom">
-      <span><Clock3 size={16} /> {remaining > 0 ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} ${online ? 'suggested discussion time' : 'to pause & talk'}` : 'Keep talking for as long as you like'}</span>
-      <button className="button primary" onClick={() => void onContinue()} disabled={(!online && remaining > 0) || busy || waiting}>
-        {waiting ? 'Waiting for your partner…' : online ? remaining > 0 ? 'Skip timer · I’m ready' : 'I’m ready to continue' : 'We’re ready to continue'}<ArrowRight size={15} />
+      <span><Clock3 size={16} /> {remaining > 0 ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} suggested discussion time` : 'Keep talking for as long as you like'}</span>
+      <button className="button primary" onClick={() => void onContinue()} disabled={busy || waiting}>
+        {waiting ? 'Waiting for your partner…' : remaining > 0 ? online ? 'Skip timer · I’m ready' : 'Skip timer · continue' : online ? 'I’m ready to continue' : 'We’re ready to continue'}<ArrowRight size={15} />
       </button>
     </div>
-    <small>{online ? 'Discussion is optional. You can both mark ready now to skip the timer, or keep talking as long as you like. The next round starts only when both are ready.' : 'The timer is a minimum pause, not a deadline. Continue only when you both feel heard.'}</small>
+    <small>{online ? 'Skip or chat. Continue only when both are ready.' : 'Skip or chat. Take as much time as you like.'}</small>
   </>;
 }

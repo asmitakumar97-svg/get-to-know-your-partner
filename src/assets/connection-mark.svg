@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Two intertwined hearts</title>
+  <rect x="1" y="1" width="62" height="62" rx="19" fill="#ffecf2" stroke="#97a273"/>
+  <g stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 19C18 9 7 14 7 24C7 34 17 41 24 47C31 41 41 34 41 24C41 14 30 9 24 19Z" stroke="#254117"/>
+    <path d="M40 19C34 9 23 14 23 24C23 34 33 41 40 47C47 41 57 34 57 24C57 14 46 9 40 19Z" stroke="#cd6184"/>
+    <path d="M24 47C31 41 41 34 41 24" stroke="#ffecf2" stroke-width="6.8"/>
+    <path d="M24 47C31 41 41 34 41 24" stroke="#254117"/>
+  </g>
+</svg>

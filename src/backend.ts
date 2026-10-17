@@ -4,6 +4,7 @@ import { buildDeck, type GameId } from './catalog';
 import { buildPlaylist, type NightEntry } from './night';
 import { buildSectionDeck, type Scenario, type Section } from './scenarios';
 import type { QuestionRequest } from '../supabase/functions/_shared/questions';
+import { isRelationshipGame, type GameReflection } from './relationshipGames';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -24,31 +25,48 @@ export async function identity() {
 async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
   if (!supabase) throw new Error('Online rooms are not configured.');
   const { data, error } = await supabase.rpc(name, args);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (name === 'switch_game_question' && error.code === 'PGRST202') throw new Error('Online question switching needs database migration 008. Update Supabase before switching questions online.');
+    throw new Error(error.message);
+  }
   return data as T;
 }
-export const getRoom = (id: string) => rpc<SessionState>('game_state', { room_id: id });
+async function sessionRpc(name: string, args: Record<string, unknown>): Promise<SessionState> {
+  const state = await rpc<SessionState>(name, args);
+  if (!isRelationshipGame(state.gameType)) return state;
+  const notes = await rpc<{ reflections: Record<string, GameReflection>; clues: Record<string, string> }>('my_game_notes', { room_id: state.id, game_index: state.night?.index ?? 0 });
+  return { ...state, myReflections: notes.reflections, myClues: notes.clues };
+}
+export const getRoom = (id: string) => sessionRpc('game_state', { room_id: id });
 export const createRoom = (name: string, count: number, seconds: number, gameType: GameId = 'same-page', selectedSections?: readonly Section[], preparedDeck?: Scenario[]) =>
-  rpc<SessionState>(gameType === 'same-page' ? 'create_game' : 'create_game_mode', {
+  sessionRpc(gameType === 'same-page' ? 'create_game' : 'create_game_mode', {
     player_name: name, scenario_deck: preparedDeck ?? (gameType === 'same-page' && selectedSections ? buildSectionDeck(selectedSections) : buildDeck(gameType, count)), discussion_seconds: seconds,
     ...(gameType === 'same-page' ? {} : { game_kind: gameType }),
   });
 export const joinRoom = (code: string, name: string) =>
-  rpc<SessionState>('join_game', { room_code: code.trim().toUpperCase(), player_name: name });
-export const startRoom = (id: string) => rpc<SessionState>('start_game', { room_id: id });
-export const sendAnswer = (id: string, round: number, answer: Answer | ChoiceAnswer, nightIndex?: number) =>
-  rpc<SessionState>(nightIndex === undefined ? 'answer_game' : 'answer_night_game', {
-    room_id: id, round_number: round, payload: answer, ...(nightIndex === undefined ? {} : { game_index: nightIndex }),
+  sessionRpc('join_game', { room_code: code.trim().toUpperCase(), player_name: name });
+export const startRoom = (id: string) => sessionRpc('start_game', { room_id: id });
+export const sendAnswer = (id: string, round: number, answer: Answer | ChoiceAnswer, nightIndex?: number, questionId?: string) =>
+  sessionRpc(nightIndex === undefined ? 'answer_game' : 'answer_night_game', {
+    room_id: id, round_number: round, payload: { ...answer, questionId }, ...(nightIndex === undefined ? {} : { game_index: nightIndex }),
   });
 export const sendReady = (id: string, round: number, nightIndex?: number) =>
-  rpc<SessionState>(nightIndex === undefined ? 'ready_game' : 'ready_night_game', {
+  sessionRpc(nightIndex === undefined ? 'ready_game' : 'ready_night_game', {
     room_id: id, round_number: round, ...(nightIndex === undefined ? {} : { game_index: nightIndex }),
   });
 export const createNightRoom = (name: string, ids: GameId[], count: number, seconds: number, selectedSections?: readonly Section[], preparedPlaylist?: NightEntry[]) =>
-  rpc<SessionState>('create_game_night', { player_name: name, game_plan: preparedPlaylist ?? buildPlaylist(ids, count, selectedSections), discussion_seconds: seconds });
+  sessionRpc('create_game_night', { player_name: name, game_plan: preparedPlaylist ?? buildPlaylist(ids, count, selectedSections), discussion_seconds: seconds });
 export const advanceNightRoom = (id: string, index: number) =>
-  rpc<SessionState>('advance_game_night', { room_id: id, game_index: index });
-export const leaveRoom = (id: string) => rpc<SessionState>('leave_game', { room_id: id });
+  sessionRpc('advance_game_night', { room_id: id, game_index: index });
+export const leaveRoom = (id: string) => sessionRpc('leave_game', { room_id: id });
+export const sendReflection = (id: string, round: number, note: GameReflection, nightIndex?: number) =>
+  sessionRpc('save_game_reflection', { room_id: id, round_number: round, payload: note, game_index: nightIndex ?? null });
+export const sendSkip = (id: string, round: number, nightIndex?: number, questionId?: string) =>
+  sessionRpc(nightIndex === undefined ? 'answer_game' : 'answer_night_game', {
+    room_id: id, round_number: round, payload: { skip: true, questionId }, ...(nightIndex === undefined ? {} : { game_index: nightIndex }),
+  });
+export const sendQuestionSwitch = (id: string, round: number, questionId: string, replacement: Scenario, nightIndex?: number) =>
+  sessionRpc('switch_game_question', { room_id: id, round_number: round, expected_question_id: questionId, replacement, game_index: nightIndex ?? null });
 
 export async function generateQuestions(request: QuestionRequest): Promise<unknown> {
   if (!supabase) throw new Error('The online question service is not configured.');
